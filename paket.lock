@@ -1,0 +1,5 @@
+STORAGE: NONE
+RESTRICTION: == net50
+NUGET
+  remote: https://api.nuget.org/v3/index.json
+    System.Threading.Channels (5.0)
