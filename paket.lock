@@ -2,4 +2,6 @@ STORAGE: NONE
 RESTRICTION: == net50
 NUGET
   remote: https://api.nuget.org/v3/index.json
+    Open.ChannelExtensions (5.0)
+      System.Threading.Channels (>= 5.0)
     System.Threading.Channels (5.0)

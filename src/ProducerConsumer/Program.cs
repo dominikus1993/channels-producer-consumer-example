@@ -1,58 +1,50 @@
-﻿using System;
+﻿using System.Net;
+using System.IO;
+using System.Threading;
+using System;
 using System.Collections.Generic;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-
+using Open.ChannelExtensions;
 namespace ProducerConsumer
 {
-    interface IProducer<T>
+    class Program
     {
-        ChannelReader<T> Produce();
-    }
-
-    class NumberProducer : IProducer<List<int>>
-    {
-        private Channel<List<int>> _channel;
-
-        public NumberProducer(Channel<List<int>> channel)
+        private static ChannelReader<Guid> Producer(CancellationToken cancellationToken = default)
         {
-            _channel = channel;
-        }
-
-        public ChannelReader<List<int>> Produce()
-        {
-            const int prodCount = 10;
-            var producers = new List<Task>(prodCount);
-            for (var i = 0; i < prodCount; i++)
+            var chan = Channel.CreateBounded<Guid>(new BoundedChannelOptions(1) { SingleWriter = false, SingleReader = false });
+            async Task Produce(ChannelWriter<Guid> writer, CancellationToken token)
             {
-                producers.Add(ProduceNumbers(_channel));
+               var lines = await File.ReadAllLinesAsync("./data.txt");
+               foreach (var line in lines)
+               {
+                    if(Guid.TryParse(line, out Guid guid))
+                        await writer.WriteAsync(guid);
+               }
             }
 
             Task.Run(async () =>
             {
-                await Task.WhenAll(producers);
-                _channel.Writer.Complete();
-            });
+                try
+                {
+                    await Produce(chan, cancellationToken);
+                    chan.Writer.Complete();
+                }
+                catch (Exception ex)
+                {
+                    chan.Writer.Complete(ex);
+                }
 
-            return _channel.Reader;
+            }, cancellationToken);
+            return chan.Reader;
         }
-
-        private async Task ProduceNumbers(ChannelWriter<List<int>> writer)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            await writer.WriteAsync(new List<int>() { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 });
-        }
-    }
-
-    class Program
-    {
         static async Task Main(string[] args)
         {
-            var prod = new NumberProducer(Channel.CreateBounded<List<int>>(10));
+            var prod = Producer();
 
-            await foreach (var i in prod.Produce().ReadAllAsync())
+            await foreach (var id in prod.ReadAllAsync())
             {
-                Console.WriteLine(string.Join(", ", i));
+                Console.WriteLine(id);
             }
         }
     }
