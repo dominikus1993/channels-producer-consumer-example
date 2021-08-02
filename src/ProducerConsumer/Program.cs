@@ -87,7 +87,7 @@ namespace ProducerConsumer
         static ChannelReader<ExternalData> FetchData(ChannelReader<Data> guids, CancellationToken cancellationToken = default)
         {
 
-            var chan = Channel.CreateBounded<ExternalData>(new BoundedChannelOptions(1) { SingleWriter = false, SingleReader = false });
+            var chan = Channel.CreateBounded<ExternalData>(new BoundedChannelOptions(1) { SingleWriter = false, SingleReader = true });
 
             static async Task Produce(int conId, ChannelReader<Data> stream, ChannelWriter<ExternalData> writer, CancellationToken token)
             {
